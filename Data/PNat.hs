@@ -5,7 +5,6 @@
 module Data.PNat where
 
 import qualified GHC.TypeLits as TL
-import Data.Type.Equality ((:~:) (..), gcastWith)
 
 data PNat = Z | S PNat deriving (Eq, Show, Ord)
 
@@ -25,6 +24,11 @@ infixl 6 +
 type family (+) (m :: PNat) (n :: PNat) :: PNat where
   Z + n = n
   S m + n = S (m + n)
+
+infixl 6 -
+type family (-) (m :: PNat) (n :: PNat) :: PNat where
+  m - Z = m
+  S m - S n = m - n
 
 infixl 7 *
 type family (*) (m :: PNat) (n :: PNat) :: PNat where
@@ -49,6 +53,12 @@ type family Cmp (m :: PNat) (n :: PNat) :: Ordering where
   Cmp m Z = GT
   Cmp Z n = LT
   Cmp (S m) (S n) = Cmp m n
+
+type family LTE (m :: PNat) (n :: PNat) :: Bool where
+  LTE Z Z = True
+  LTE m Z = False
+  LTE Z n = True
+  LTE (S m) (S n) = LTE m n
 
 data PNatS :: PNat -> * where
   SZ :: PNatS Z
@@ -78,3 +88,13 @@ ten = SS nine
 plus :: PNatS m -> PNatS n -> PNatS (m + n)
 plus SZ n = n
 plus (SS m) n = SS (plus m n)
+
+minus :: LTE m n ~ True => PNatS n -> PNatS m -> PNatS (n - m)
+minus n SZ = n
+minus (SS n) (SS m) = minus n m
+
+toIntegral :: Integral int => PNatS n -> int
+toIntegral SZ = 0
+toIntegral (SS n) = 1 + toIntegral n
+{-# SPECIALIZE toIntegral :: PNatS n -> Int #-}
+{-# SPECIALIZE toIntegral :: PNatS n -> Integer #-}

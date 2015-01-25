@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds, KindSignatures, GADTs, TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Data.Vect where
 
@@ -12,7 +14,7 @@ import Data.Proxy (Proxy (..))
 import Data.Type.Equality ((:~:) (Refl), gcastWith)
 import Prelude (Show (show), (.), Bool (..), undefined, Maybe (..), ($)
        , Functor (fmap), Eq (..), Ord (..), Ordering (..), Num (..)
-       , (&&), (||), max, min)
+       , (&&), (||), max, min, const)
 
 infixr 5 :.
 data Vect :: PNat -> * -> * where
@@ -151,18 +153,23 @@ foldr :: (a -> b -> b) -> b -> Vect n a -> b
 foldr f z Nil = z
 foldr f z (x :. xs) = x `f` foldr f z xs
 
-splitAt :: PNatS n -> Proxy k -> Vect (n + k) a -> (Vect n a, Vect k a)
-splitAt SZ _ xs = (Nil, xs)
-splitAt (SS n) k (x :. xs) = case splitAt n k xs of
+foldrN :: (forall m. a -> p m -> p (S m)) 
+       -> p Z -> Vect n a -> p n
+foldrN f z Nil = z
+foldrN f z (x :. xs) = x `f` foldrN f z xs
+
+splitAt :: PNatS n -> Vect (n + k) a -> (Vect n a, Vect k a)
+splitAt SZ xs = (Nil, xs)
+splitAt (SS n) (x :. xs) = case splitAt n xs of
   (ys, zs) -> (x :. ys, zs)
 
 take :: PNatS n -> Proxy k -> Vect (n + k) xs -> Vect n xs
 take SZ _ _ = Nil
 take (SS n) k (x :. xs) = x :. take n k xs
 
-drop :: PNatS n -> Proxy k -> Vect (n + k) xs -> Vect k xs
-drop SZ _ xs = xs
-drop (SS n) k (x :. xs) = drop n k xs
+drop :: PNatS n -> Vect (n + k) xs -> Vect k xs
+drop SZ xs = xs
+drop (SS n) (x :. xs) = drop n xs
 
 data SplitVects :: PNat -> * -> * where
   Split :: Vect m a -> Vect n a -> SplitVects (m + n) a
@@ -208,6 +215,12 @@ findIndex f Nil = Nothing
 findIndex f (x :. xs) = if f x then Just (FZ, x) 
   else fmap (\(i, z) -> (FS i, z)) (findIndex f xs)
 
-
+{-
 test :: Vect (Fact Six) (Vect Six (Fin Six))
 test = permutations (range six)
+-}
+
+generate :: PNatS n -> (Fin n -> a) -> Vect n a
+generate SZ _ = Nil
+generate (SS n) f = f FZ :. generate n (f . FS)
+
