@@ -8,8 +8,9 @@
 
 module Data.Vect2 where
 
-import Data.PNat2
-import Data.Fin2
+import Data.Fin as F
+import Data.Nat
+import Data.SNat as N
 
 import Data.Proxy (Proxy (..))
 import Data.Type.Equality ((:~:) (Refl), gcastWith)
@@ -70,8 +71,8 @@ null Nil = True
 null (_ :. _) = False
 
 length :: Natural pnat => Vect n a -> pnat n
-length Nil = zero
-length (_ :. xs) = succ (length xs)
+length Nil = N.zero
+length (_ :. xs) = N.succ (length xs)
 
 map :: (a -> b) -> Vect n a -> Vect n b
 map f Nil = Nil
@@ -213,14 +214,14 @@ splitUpon f zs@(x :. xs) = if f x
   else case splitUpon f xs of
     Split as bs -> Split (x :. as) bs
 
-(!!) :: Vect n a -> Fin n -> a
-(x :. xs) !! n = case fin (Const x) (\m -> Const (xs !! m)) n of
+(!!) :: Finite fin => Vect n a -> fin n -> a
+(x :. xs) !! n = case elimFin (Const x) (\m -> Const (xs !! m)) n of
   Const y -> y
 
-newtype Range n = Range (Vect n (Fin n))
+newtype Range fin n = Range (Vect n (fin n))
 
-range :: PNatS n -> Vect n (Fin n)
-range n = case elimNat (Range Nil) (\i -> Range (fz :. map fs (range i))) n of
+range :: (Natural snat, Finite fin) => snat n -> Vect n (fin n)
+range n = case elimNat (Range Nil) (\i -> Range (F.zero :. map F.succ (range i))) n of
   Range y -> y
 
 and, or :: Vect n Bool -> Bool
@@ -235,16 +236,13 @@ sum, product :: Num a => Vect n a -> a
 sum = foldr (+) 0
 product = foldr (*) 1
 
-findIndex :: (a -> Bool) -> Vect n a -> Maybe (Fin n, a)
+findIndex :: Finite fin => (a -> Bool) -> Vect n a -> Maybe (fin n, a)
 findIndex f Nil = Nothing
-findIndex f (x :. xs) = if f x then Just (fz, x) 
-  else fmap (\(i, z) -> (fs i, z)) (findIndex f xs)
+findIndex f (x :. xs) = if f x then Just (F.zero, x) 
+  else fmap (\(i, z) -> (F.succ i, z)) (findIndex f xs)
 
-test :: Vect (Fact Three) (Vect Three (Fin Three))
-test = permutations (range three)
-
-generate :: PNatS n -> (Fin n -> a) -> Vect n a
+generate :: (Natural snat, Finite fin) => snat n -> (fin n -> a) -> Vect n a
 generate n f = case elimNat (Swap Nil)
-  (\i -> Swap (f fz :. generate i (f . fs)))
+  (\i -> Swap (f F.zero :. generate i (f . F.succ)))
   n of
   Swap y -> y

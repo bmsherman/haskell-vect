@@ -16,11 +16,15 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Data.Vect, Data.Fin, Data.SFin, Data.SNat, Data.PNat,
-                       Data.VectI,
-                       Data.PNat2
+  exposed-modules:     Data.Nat,
+                       Data.SNat,
+                       Data.SNat.Unary,
+                       Data.SNat.Int,
+                       Data.Fin,
+                       Data.Fin.Unary,
+                       Data.Fin.Int,
+                       Data.Vect
                        Data.Vect2
-                       Data.Fin2
   -- other-modules:       
   other-extensions:    DataKinds, GADTs, KindSignatures, TypeOperators, ScopedTypeVariables
   build-depends:       base >=4.7 && <4.8

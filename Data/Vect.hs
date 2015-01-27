@@ -7,8 +7,9 @@
 
 module Data.Vect where
 
-import Data.Fin
-import Data.PNat
+import Data.Fin.Unary
+import Data.Nat
+import Data.SNat.Unary
 
 import Data.Proxy (Proxy (..))
 import Data.Type.Equality ((:~:) (Refl), gcastWith)
@@ -68,7 +69,7 @@ null :: Vect n a -> Bool
 null Nil = True
 null (_ :. _) = False
 
-length :: Vect n a -> PNatS n
+length :: Vect n a -> SNat n
 length Nil = SZ
 length (_ :. xs) = SS (length xs)
 
@@ -133,11 +134,11 @@ unzip Nil = (Nil, Nil)
 unzip ((x, y) :. zs) = case unzip zs of
   (xs, ys) -> (x :. xs, y :. ys)
 
-replicate :: PNatS n -> a -> Vect n a
+replicate :: SNat n -> a -> Vect n a
 replicate SZ _ = Nil
 replicate (SS n) x = x :. replicate n x
 
-transpose :: PNatS n -> Vect m (Vect n a) -> Vect n (Vect m a)
+transpose :: SNat n -> Vect m (Vect n a) -> Vect n (Vect m a)
 transpose n Nil = replicate n Nil
 transpose n (xs :. xss) = zipWith (:.) xs (transpose n xss)
 
@@ -158,16 +159,16 @@ foldrN :: (forall m. a -> p m -> p (S m))
 foldrN f z Nil = z
 foldrN f z (x :. xs) = x `f` foldrN f z xs
 
-splitAt :: PNatS n -> Vect (n + k) a -> (Vect n a, Vect k a)
+splitAt :: SNat n -> Vect (n + k) a -> (Vect n a, Vect k a)
 splitAt SZ xs = (Nil, xs)
 splitAt (SS n) (x :. xs) = case splitAt n xs of
   (ys, zs) -> (x :. ys, zs)
 
-take :: LTE n m ~ True => PNatS n -> Vect m xs -> Vect n xs
+take :: LTE n m ~ True => SNat n -> Vect m xs -> Vect n xs
 take SZ _ = Nil
 take (SS n) (x :. xs) = x :. take n xs
 
-drop :: PNatS n -> Vect (n + k) xs -> Vect k xs
+drop :: SNat n -> Vect (n + k) xs -> Vect k xs
 drop SZ xs = xs
 drop (SS n) (x :. xs) = drop n xs
 
@@ -194,7 +195,7 @@ splitUpon f zs@(x :. xs) = if f x
 (x :. xs) !! FZ = x
 (x :. xs) !! (FS n) = xs !! n
 
-range :: PNatS n -> Vect n (Fin n)
+range :: SNat n -> Vect n (Fin n)
 range SZ = Nil
 range (SS n) = FZ :. map FS (range n)
 
@@ -220,7 +221,7 @@ test :: Vect (Fact Six) (Vect Six (Fin Six))
 test = permutations (range six)
 -}
 
-generate :: PNatS n -> (Fin n -> a) -> Vect n a
+generate :: SNat n -> (Fin n -> a) -> Vect n a
 generate SZ _ = Nil
 generate (SS n) f = f FZ :. generate n (f . FS)
 

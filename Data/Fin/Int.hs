@@ -1,12 +1,13 @@
-{-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeOperators #-}
+{-# LANGUAGE GADTs, DataKinds, KindSignatures, TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Data.Fin2 (
-  Fin, fz, fs, fin, foldFin
-) where
+module Data.Fin.Int where
 
-import Data.PNat2
+import Data.Fin
+import Data.Nat
+
 import Data.Type.Equality ((:~:) (Refl))
+
 import Unsafe.Coerce (unsafeCoerce)
 
 data Fin :: PNat -> * where
@@ -25,14 +26,24 @@ fin z s (F n) = if n == 0
   then unsafeCoerce z
   else assumeNIsSuccF (unsafeCoerce Refl) s (F (n - 1))
 
-foldFin :: (forall m. p m -> p (S m))
-        -> (forall m. p (S m))
-        -> Fin n -> p n
-foldFin f z = fin z (\n -> f (foldFin f z n))
-
 assumeNIsSuccF :: n :~: S m -> (forall i. n ~ S i => Fin i -> p n)
   -> Fin m -> p n
 assumeNIsSuccF Refl f x = f x
+
+instance Finite Fin where
+  zero = fz
+  succ = fs
+
+  elimFin = fin
+
+  plus (F i) (F j) = unsafeCoerce (F (i + j))
+
+  toIntegral = unConst . foldFin plus1 (Const 0)
+    where
+    plus1 :: Integral i => Const i m -> Const i (S m)
+    plus1 (Const x) = Const (x + 1)
+
+newtype Const a (b :: PNat) = Const { unConst :: a }
 
 instance Show (Fin n) where
   show = show . finToInt
