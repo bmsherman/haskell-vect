@@ -4,11 +4,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-module Data.Vect where
+module Data.Vect2 where
 
-import Data.Fin
-import Data.PNat
+import Data.PNat2
+import Data.Fin2
 
 import Data.Proxy (Proxy (..))
 import Data.Type.Equality ((:~:) (Refl), gcastWith)
@@ -68,9 +69,9 @@ null :: Vect n a -> Bool
 null Nil = True
 null (_ :. _) = False
 
-length :: Vect n a -> PNatS n
-length Nil = SZ
-length (_ :. xs) = SS (length xs)
+length :: Natural pnat => Vect n a -> pnat n
+length Nil = zero
+length (_ :. xs) = succ (length xs)
 
 map :: (a -> b) -> Vect n a -> Vect n b
 map f Nil = Nil
@@ -133,11 +134,18 @@ unzip Nil = (Nil, Nil)
 unzip ((x, y) :. zs) = case unzip zs of
   (xs, ys) -> (x :. xs, y :. ys)
 
-replicate :: PNatS n -> a -> Vect n a
-replicate SZ _ = Nil
-replicate (SS n) x = x :. replicate n x
+newtype Swap f a b = Swap { unSwap :: f b a }
 
-transpose :: PNatS n -> Vect m (Vect n a) -> Vect n (Vect m a)
+inSwap :: (f a b -> f x y) -> Swap f b a -> Swap f y x
+inSwap f (Swap x) = Swap (f x)
+
+replicate :: Natural pnat => pnat n -> a -> Vect n a
+replicate n x = unSwap $ elimNat
+  (Swap Nil)
+  (\m -> Swap (x :. replicate m x))
+  n
+
+transpose :: Natural pnat => pnat n -> Vect m (Vect n a) -> Vect n (Vect m a)
 transpose n Nil = replicate n Nil
 transpose n (xs :. xss) = zipWith (:.) xs (transpose n xss)
 
@@ -158,18 +166,33 @@ foldrN :: (forall m. a -> p m -> p (S m))
 foldrN f z Nil = z
 foldrN f z (x :. xs) = x `f` foldrN f z xs
 
-splitAt :: PNatS n -> Vect (n + k) a -> (Vect n a, Vect k a)
-splitAt SZ xs = (Nil, xs)
-splitAt (SS n) (x :. xs) = case splitAt n xs of
-  (ys, zs) -> (x :. ys, zs)
+newtype Splut f b a = Splut { unSplut :: (f a, b) }
 
-take :: LTE n m ~ True => PNatS n -> Vect m xs -> Vect n xs
-take SZ _ = Nil
-take (SS n) (x :. xs) = x :. take n xs
+splitAt :: forall a. forall k. forall n. forall pnat.
+  Natural pnat => pnat n -> Vect (n + k) a -> (Vect n a, Vect k a)
+splitAt i xs = case elimNat 
+  (Splut (Swap Nil, xs) :: Splut (Swap Vect a) (Vect k a) Z)
+  (\n -> case xs of 
+    (x' :. xs') -> case splitAt n xs' of
+      (ys, zs) -> Splut (Swap (x' :. ys), zs))
+  i of
+  Splut (Swap u, v) -> (u, v)
 
-drop :: PNatS n -> Vect (n + k) xs -> Vect k xs
-drop SZ xs = xs
-drop (SS n) (x :. xs) = drop n xs
+take :: (LTE n m ~ True, Natural pnat) => pnat n -> Vect m xs -> Vect n xs
+take i xs = case elimNat 
+  (Swap Nil)
+  (\n -> case xs of (x' :. xs') -> Swap (x' :. take n xs'))
+  i of
+  Swap ys -> ys
+
+newtype Const a b = Const a
+
+drop :: Natural pnat => pnat n -> Vect (n + k) xs -> Vect k xs
+drop i xs = case elimNat
+  (Const xs)
+  (\n -> case xs of (x' :. xs') -> Const (drop n xs'))
+  i of
+  Const ys -> ys
 
 data SplitVects :: PNat -> * -> * where
   Split :: Vect m a -> Vect n a -> SplitVects (m + n) a
@@ -191,12 +214,14 @@ splitUpon f zs@(x :. xs) = if f x
     Split as bs -> Split (x :. as) bs
 
 (!!) :: Vect n a -> Fin n -> a
-(x :. xs) !! FZ = x
-(x :. xs) !! (FS n) = xs !! n
+(x :. xs) !! n = case fin (Const x) (\m -> Const (xs !! m)) n of
+  Const y -> y
+
+newtype Range n = Range (Vect n (Fin n))
 
 range :: PNatS n -> Vect n (Fin n)
-range SZ = Nil
-range (SS n) = FZ :. map FS (range n)
+range n = case elimNat (Range Nil) (\i -> Range (fz :. map fs (range i))) n of
+  Range y -> y
 
 and, or :: Vect n Bool -> Bool
 and = foldr (&&) True
@@ -212,15 +237,14 @@ product = foldr (*) 1
 
 findIndex :: (a -> Bool) -> Vect n a -> Maybe (Fin n, a)
 findIndex f Nil = Nothing
-findIndex f (x :. xs) = if f x then Just (FZ, x) 
-  else fmap (\(i, z) -> (FS i, z)) (findIndex f xs)
+findIndex f (x :. xs) = if f x then Just (fz, x) 
+  else fmap (\(i, z) -> (fs i, z)) (findIndex f xs)
 
-{-
-test :: Vect (Fact Six) (Vect Six (Fin Six))
-test = permutations (range six)
--}
+test :: Vect (Fact Three) (Vect Three (Fin Three))
+test = permutations (range three)
 
 generate :: PNatS n -> (Fin n -> a) -> Vect n a
-generate SZ _ = Nil
-generate (SS n) f = f FZ :. generate n (f . FS)
-
+generate n f = case elimNat (Swap Nil)
+  (\i -> Swap (f fz :. generate i (f . fs)))
+  n of
+  Swap y -> y

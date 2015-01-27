@@ -11,7 +11,7 @@ import GHC.TypeLits
 data Fin :: Nat -> * where
   MkFin :: Int -> Fin n
 
-fzero :: Fin n
+fzero :: Fin (1 + n)
 fzero = MkFin 0
 
 fsucc :: Fin n -> Fin (1 + n)

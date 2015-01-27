@@ -9,7 +9,7 @@ import Data.PNat
 import Data.SNat hiding (lit)
 
 data Fin :: PNat -> * where
-  FZ :: Fin n
+  FZ :: Fin (S n)
   FS :: Fin n -> Fin (S n)
 
 finToInteger :: Fin n -> Integer

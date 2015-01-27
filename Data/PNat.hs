@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Data.PNat where
 
@@ -89,6 +90,10 @@ plus :: PNatS m -> PNatS n -> PNatS (m + n)
 plus SZ n = n
 plus (SS m) n = SS (plus m n)
 
+times :: PNatS m -> PNatS n -> PNatS (m * n)
+times SZ n = SZ
+times (SS m) n = plus n (times m n)
+
 minus :: LTE m n ~ True => PNatS n -> PNatS m -> PNatS (n - m)
 minus n SZ = n
 minus (SS n) (SS m) = minus n m
@@ -96,5 +101,10 @@ minus (SS n) (SS m) = minus n m
 toIntegral :: Integral int => PNatS n -> int
 toIntegral SZ = 0
 toIntegral (SS n) = 1 + toIntegral n
+
+foldPNatSN :: (forall m. p m -> p (S m)) -> p Z -> PNatS n -> p n
+foldPNatSN f z SZ = z
+foldPNatSN f z (SS n) = f (foldPNatSN f z n)
+
 {-# SPECIALIZE toIntegral :: PNatS n -> Int #-}
 {-# SPECIALIZE toIntegral :: PNatS n -> Integer #-}
