@@ -38,8 +38,8 @@ class Finite fin where
     plusser :: Plus fin n i -> Plus fin n (S i)
     plusser (Plus i) = Plus (succ i)
 
-  plus :: fin m -> fin n -> fin (m + n)
-  --times :: pnat m -> pnat n -> pnat (m * n + m + n)
+  plus :: fin (S m) -> fin (S n) -> fin (S (m + n))
+  --times :: pnat (S m) -> pnat (S n) -> pnat (S (m * n))
 
   toIntegral :: forall i. forall n. Integral i => fin n -> i
   toIntegral = unConst . foldFin plus1 (Const 0)
