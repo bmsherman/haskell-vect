@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeOperators #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Data.Fin (
   Finite (..)
@@ -31,9 +32,8 @@ class Finite fin where
     succer :: Succ fin n -> Succ fin (S n)
     succer (Succ n) = Succ (succ n)
 
-  weakenN :: forall n. forall snat. forall k. 
-    Natural snat => snat n -> fin k -> fin (k + n)
-  weakenN n = unPlus . foldFin plusser (Plus zero)
+  weakenN :: forall n. forall k.  fin k -> fin (k + n)
+  weakenN = unPlus . foldFin plusser (Plus zero)
     where
     plusser :: Plus fin n i -> Plus fin n (S i)
     plusser (Plus i) = Plus (succ i)

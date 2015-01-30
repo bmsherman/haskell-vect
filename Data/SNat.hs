@@ -1,10 +1,7 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Data.SNat (
   Natural (..)
@@ -121,4 +118,21 @@ newtype Const a (b :: PNat) = Const { unConst :: a }
 newtype OpResult pnat n m = OpResult { unOpResult :: pnat (m + n) }
 newtype OpResult2 pnat n m = OpResult2 { unOpResult2 :: pnat (m * n) }
 newtype PowResult pnat m n = PowResult { unPowResult :: pnat (m ^ n) }
+
+newtype PSRS n m = PSRS { unPSRS :: S (m + n) :~: m + S n }
+
+plusSuccRightSucc :: forall m n nat. Natural nat => nat m -> nat n
+  -> S (m + n) :~: m + S n
+plusSuccRightSucc m n = unPSRS (foldNat succer (PSRS Refl) m)
+  where
+  succer :: PSRS n i -> PSRS n (S i)
+  succer (PSRS Refl) = PSRS Refl
+
+newtype NPZN n = NPZN { unNPZN :: n :~: n + Z }
+
+nPlusZIsN :: forall n nat. Natural nat => nat n -> n :~: n + Z
+nPlusZIsN = unNPZN . foldNat succer (NPZN Refl)
+  where
+  succer :: NPZN i -> NPZN (S i)
+  succer (NPZN Refl) = NPZN Refl
 

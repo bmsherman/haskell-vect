@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds, GADTs, KindSignatures, TypeOperators #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.Fin.Unary (
   Fin (..)

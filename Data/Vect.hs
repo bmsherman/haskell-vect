@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds, KindSignatures, GADTs, TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}

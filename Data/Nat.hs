@@ -1,9 +1,5 @@
 {-# LANGUAGE TypeFamilies, TypeOperators, DataKinds #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.Nat (
   PNat (..), type (+), type (*), type (^), type (-)
